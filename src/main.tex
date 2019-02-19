@@ -133,7 +133,7 @@ memory alike. The most recent iteration of the Fortran standard is Fortran 2018
 advanced parallel programming features such as teams and events, and
 miscellaneous additions to the language and the standard library.
 The above-mentioned features, as well as its continued development by
-the Fortran Standards committee, thus provide a solid foundation for a
+the Fortran Standards committee, provide a solid foundation for a
 Fortran framework for neural networks and deep learning.
 
 Development of this framework was largely motivated by my own desire to learn
@@ -187,7 +187,7 @@ Neural-fortran provides out-of-the-box support for:
 Feed-forward neural networks are the simplest possible flavor of all neural
 networks, and form a basis for other network flavors such as convolutional
 \citep{krizhevsky12} and recurrent \citep{hochreiter97} neural networks.
-Optimization algorithm and the choice of cost function is what allows a network
+Optimization algorithm and the choice of cost function allow a network
 to learn from the data. Finally, parallelism allows training or evaluating the
 network using many processors at once. I describe the implementation of these
 features in the next section.
@@ -453,13 +453,13 @@ pure subroutine backprop(self, y, dw, db)
     n = size(dims)
     db(n) % array = (layers(n) % a - y) * self % activation_prime(layers(n) % z)
     dw(n-1) % array = matmul(reshape(layers(n-1) % a, [dims(n-1), 1]), &
-                             reshape(db(n) % array, [1, dims(n)]))
+                                reshape(db(n) % array, [1, dims(n)]))
 
     do n = size(dims) - 1, 2, -1
       db(n) % array = matmul(layers(n) % w, db(n+1) % array) &
-                    * self % activation_prime(layers(n) % z)
+                     * self % activation_prime(layers(n) % z)
       dw(n-1) % array = matmul(reshape(layers(n-1) % a, [dims(n-1), 1]), &
-                               reshape(db(n) % array, [1, dims(n)]))
+                                  reshape(db(n) % array, [1, dims(n)]))
     end do
 
   end associate
@@ -512,7 +512,7 @@ corresponding to the shapes of input and output layers, respectively, and the
 second dimension corresponding to the size of the data batch
 (Listing \ref{train_batch_listing}).
 
-\begin{lstlisting}[caption={A variant of the training method that accepts batches of data}, captionpos=b, label={train_batch_listing}]
+\begin{lstlisting}[caption={A variant of the training method that accepts batches of data.}, captionpos=b, label={train_batch_listing}]
 subroutine train_batch(self, x, y, eta)
   class(network_type), intent(in out) :: self
   real(rk), intent(in) :: x(:,:), y(:,:), eta
@@ -523,17 +523,17 @@ end subroutine train_batch
 Finally, access to either variant is made via the generic procedure
 \lstinline{train} (Listing \ref{train_generic_listing}).
 
-\begin{lstlisting}[caption={Overloading specific training procedures with a generic name}, captionpos=b, label={train_generic_listing}]
+\begin{lstlisting}[caption={Overloading specific training procedures with a generic name.}, captionpos=b, label={train_generic_listing}]
 generic, public :: &
   train => train_batch, train_single
 \end{lstlisting}
 
 The user can thus perform training using a single sample of data,
-or a whole batch of data, using the same generic procedure. The correct
-specific procedure is determined by the compiler depenging on the rank of
+or a batch of data, using the same generic procedure. The correct
+specific procedure is determined by the compiler depending on the rank of
 input data. Example:
 
-\begin{lstlisting}[caption={Using the generic training procedure with single samples and batches of data}, captionpos=b, label={train_generic_usage_listing}]
+\begin{lstlisting}[caption={Using the generic training procedure with single samples and batches of data.}, captionpos=b, label={train_generic_usage_listing}]
 ! invokes network % train_single()
 network % train(x(:,n), y(:,n), eta)
 
@@ -547,7 +547,7 @@ is the implementation of the parallelism, described in the following section.
 \subsection{Parallelism}
 
 There are two main approaches to parallelizing neural networks:
-data-based and model-based parallelism.
+Data-based and model-based parallelism.
 
 In the data-based parallelism approach, a training data batch is evenly distributed
 between the parallel processors, which can be working in either
@@ -828,12 +828,12 @@ configuration:
 
 To evaluate the serial (single-core) performance of neural-fortran,
 we compare the elapsed training time of neural-fortran against an established
-and mature machine learning framework, Keras 2.2.4 \citep{chollet15} using the
+and mature machine learning framework, Keras 2.2.4 \citep{chollet15} using
 Tensorflow 1.12.0 \citep{abadi16} as the computational backend. This framework
 was configured in a Python 3.6.8 environment with numpy 1.16.1 and scipy 1.2.1
 on the same system used to run neural-fortran.
 
-The performance comparison was done using the handwritten digits example
+The performance is compared using the handwritten digits example
 with MNIST image dataset, with the same layer configuration as that used
 in Section \ref{section_examples} (784-30-10 neurons with sigmoid activations).
 The Keras network was configured in the exact same fashion, with stochastic
@@ -880,12 +880,13 @@ potential to be computationally competitive in production, especially if
 optimizations are made to the linear algebra operations.
 
 Finally, it is worth mentioning the ease of use of neural-fortran in comparison
-to Keras. The most straightforward metric are the lines of code needed to
+to Keras. The most straightforward metric is the number of lines of code needed to
 construct, train, and evaluate the network. The neural-fortran program used
 in this benchmark consists of 37 lines of code, excluding comments,
 whereas the Keras script consists of 41 lines of code. Five of these lines
 were needed to constrain the Keras network to use a single thread.
-The amount of code needed for this example is thus almost equivalent.
+The amount of code needed for this example is thus almost equivalent
+between the two frameworks.
 The Python script used to construct, train, and time the Keras network,
 and the neural-fortran program used in this benchmark are available in the
 source code repository for this paper.
