@@ -212,6 +212,7 @@ not a convenient choice to model a network. Instead, we can model a network
 with a derived type, one of its components being a dynamic array of layers
 (Listing \ref{network_listing}).
 
+\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={Definition of the network class. Type-bound methods are omitted for brevity.}, captionpos=b, label={network_listing}]
 type :: network_type
   type(layer_type), allocatable :: layers(:)
@@ -224,6 +225,7 @@ contains
   ...
 end type network_type
 \end{lstlisting}
+\end{minipage}
 
 The key component in the network class is the allocatable array of layers
 instances. The \lstinline{allocatable} attribute is essential to allowing the
@@ -241,6 +243,7 @@ To create and initialize a network instance from a single line, we need to
 build all the set up logic into a custom constructor function (Listing
 \ref{network_constructor_listing}).
 
+\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={Custom network constructor.}, captionpos=b, label={network_constructor_listing}]
 type(network_type) function &
   net_constructor(dims, activation) result(net)
@@ -256,6 +259,7 @@ type(network_type) function &
   call net % sync(1)
 end function net_constructor
 \end{lstlisting}
+\end{minipage}
 
 The network constructor accepts two input arguments. First is a rank-1 array of
 integers \lstinline{dims}. This array controls how many layers to allocate in
@@ -273,11 +277,13 @@ the state of the network to all other processors if executed in parallel.
 With our custom constructor defined, a network instance can be created from the
 client code as shown in Listing \ref{using_constructor_listing}.
 
+\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={Creating a network instance in the client code.}, captionpos=b, label={using_constructor_listing}]
 use mod_network, only: network_type
 type(network_type) :: net
 net = network_type([3, 5, 2], 'tanh')
 \end{lstlisting}
+\end{minipage}
 
 In this example, we created a network instance with an input layer of 3 neurons,
 one hidden layer of 5 neurons, an output layer with 2 neurons, and a tangent
@@ -290,6 +296,7 @@ we don't need special treatment of neurons using derived types, and modeling
 their properties as Fortran arrays inside the layer class is straightforward
 and sufficient (Listing \ref{layer_listing}).
 
+\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={Definition of the layer class.}, captionpos=b, label={layer_listing}]
 type :: layer_type
   real(rk), allocatable :: a(:)
@@ -298,6 +305,7 @@ type :: layer_type
   real(rk), allocatable :: z(:)
 end type layer_type
 \end{lstlisting}
+\end{minipage}
 
 The layer is thus simply made of contiguous allocatable arrays for activations,
 biases, weights, and a temporary array to be used in the backpropagation step.
@@ -313,6 +321,7 @@ quasi-random weights and biases to make it as little biased as possible.
 To that end, we initialize the weights using a simplified variant of Xavier's
 initialization \citep{glorot10}, as shown in Listing \ref{layer_constructor_listing}.
 
+\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={Layer constructor.}, captionpos=b, label={layer_constructor_listing}]
 type(layer_type) function &
   constructor(this_size, next_size) result(layer)
@@ -326,6 +335,7 @@ type(layer_type) function &
   layer % b = randn(this_size)
 end function constructor
 \end{lstlisting}
+\end{minipage}
 
 All weights are initialized as radnom numbers with a normal distribution
 centered on zero, and normalized by the number of neurons in the layer. The
@@ -375,6 +385,7 @@ so we can write this more concisely in vector form as:
 Fortran's whole array arithmetic allows us to express Eq. \ref{eq:activation_vector}
 in code almost identically, as shown in Listing \ref{fwdprop_listing}.
 
+\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={A subroutine to perform the forward propagation of the network, and store intermediate activations for later use.}, captionpos=b, label={fwdprop_listing}]
 pure subroutine fwdprop(self, x)
   class(network_type), intent(in out) :: self
@@ -392,6 +403,7 @@ pure subroutine fwdprop(self, x)
   end associate
 end subroutine fwdprop
 \end{lstlisting}
+\end{minipage}
 
 The activations for the first (input) layer are just input data $x$. The actual
 computation of activations is done from the second layer and onward. For each
@@ -485,6 +497,7 @@ The subroutine \lstinline{train_single} takes a single set of input data x and y
 and the learning rate \lstinline{eta}, and updates its weights and biases
 accordingly (Listing \ref{train_loop_listing}).
 
+\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={A training procedure for a single data sample.}, captionpos=b, label={train_loop_listing}]
 pure subroutine train_single(self, x, y, eta)
   class(network_type), intent(in out) :: self
@@ -496,6 +509,7 @@ pure subroutine train_single(self, x, y, eta)
   call self % update(dw, db, eta)
 end subroutine train_single
 \end{lstlisting}
+\end{minipage}
 
 This method takes a sample of input data $x$, output data $y$, and a learning
 rate as input arguments. We first forward propagate the network using the input
@@ -512,6 +526,7 @@ corresponding to the shapes of input and output layers, respectively, and the
 second dimension corresponding to the size of the data batch
 (Listing \ref{train_batch_listing}).
 
+\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={A variant of the training method that accepts batches of data.}, captionpos=b, label={train_batch_listing}]
 subroutine train_batch(self, x, y, eta)
   class(network_type), intent(in out) :: self
@@ -519,20 +534,24 @@ subroutine train_batch(self, x, y, eta)
   ...
 end subroutine train_batch
 \end{lstlisting}
+\end{minipage}
 
 Finally, access to either variant is made via the generic procedure
 \lstinline{train} (Listing \ref{train_generic_listing}).
 
+\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={Overloading specific training procedures with a generic name.}, captionpos=b, label={train_generic_listing}]
 generic, public :: &
   train => train_batch, train_single
 \end{lstlisting}
+\end{minipage}
 
 The user can thus perform training using a single sample of data,
 or a batch of data, using the same generic procedure. The correct
 specific procedure is determined by the compiler depending on the rank of
 input data. Example:
 
+\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={Using the generic training procedure with single samples and batches of data.}, captionpos=b, label={train_generic_usage_listing}]
 ! invokes network % train_single()
 network % train(x(:,n), y(:,n), eta)
@@ -540,6 +559,7 @@ network % train(x(:,n), y(:,n), eta)
 ! invokes network % train_batch()
 network % train(x(:,:), y(:,:), eta)
 \end{lstlisting}
+\end{minipage}
 
 This subsection completes the training sequence. The last remaining piece
 is the implementation of the parallelism, described in the following section.
@@ -580,12 +600,14 @@ following steps:
   \item Finally, the weight and bias tendencies are summed up across all parallel
   processes using the collective sum method:
 
+  \begin{minipage}{\linewidth}
   \begin{lstlisting}
   if (num_images() > 1) then
     call dw_co_sum(dw_batch)
     call db_co_sum(db_batch)
   end if
   \end{lstlisting}
+  \end{minipage}
 
   Once the collective sum operation is complete, each process updates their
   own copy of the network. \lstinline{dw_co_sum} and \lstinline{db_co_sum} are
@@ -767,6 +789,7 @@ and other housekeeping.
 
 Running this program outputs the following:
 
+\begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={Output from the MNIST training example program. Some lines omitted for brevity.}, captionpos=b]
 Initial accuracy: 10.09 %
 Epoch  1 done, Accuracy: 27.91 %
@@ -777,6 +800,7 @@ Epoch  5 done, Accuracy: 87.24 %
 ...
 Epoch 30 done, Accuracy: 93.39 %
 \end{lstlisting}
+\end{minipage}
 
 The program first outputs the initial accuracy, which is approximately 10\%.
 The accuracy is calculated as the number of digits (out of 10000, the size
