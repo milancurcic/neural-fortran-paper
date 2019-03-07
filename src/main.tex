@@ -844,7 +844,7 @@ configuration:
   \item Libraries:
   \begin{itemize}
     \item OpenMPI 2.1.1
-    \item OpenCoarrays 2.3.1
+    \item OpenCoarrays 2.3.1 \citep{fanfarillo14}
   \end{itemize}
 \end{itemize}
 
@@ -935,15 +935,19 @@ of the code and exclude the loading of the dataset. Elapsed times on up to
   \label{fig_mnist_elapsed}
 \end{figure}
 
-Next we look at parallel efficiency (PE), which is the serial elapsed time
+Next we look at the parallel efficiency (PE), which is the serial elapsed time
 divided by the parallel elapsed time and the number of processes,
 $PE = t(1) / (n t(n))$ (Figure \ref{fig_mnist_efficiency}).
-Perfect scaling is indicated by $PE = 1$.
+On the high end, perfect scaling corresponds $PE = 1$.
+On the low end, no parallel speed-up relative to the serial performance,
+meaning $t(n) = t(1)$ for any value of $n$, corresponds to $PE = 1/n$ and 
+is shown using the dashed line.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\columnwidth]{../figures/nf-parallel-efficiency.png}
-  \caption{Parallel efficiency as function of number of cores in the MNIST training example.}
+  \caption{Parallel efficiency as function of number of cores in the MNIST training example.
+	   Zero speed-up relative to the serial mode ($PE = 1/n$) is indicated with the dashed line.}
   \label{fig_mnist_efficiency}
 \end{figure}
 
@@ -979,7 +983,11 @@ Conversely, the amount of communication between processes that needs to be
 done by the collective sum of weight and bias tendencies increases. This is
 analogous to the scalability limits in fluid dynamics, except that here the
 parallel operation is global, rather than only between the neighboring
-processes. Nevertheless, the ability to explicitly allocate any number
+processes. 
+Nevertheless, the measured $PE$ remains well above the zero-speed-up line
+for all configurations, indicating that in this example neural-fortran
+can efficiently use all cores in a high-end shared memory system.
+The ability to explicitly allocate any number
 of cores in the system, or to execute the training on a distributed-memory
 system without any change to the code, are unique features of neural-fortran
 that are not trivial to accomplish in a framework like Keras or Tensorflow.
@@ -1018,11 +1026,11 @@ further development of neural-fortran will maintain ease of use as its primary
 focus.
 
 \begin{acks}
-I am grateful to the team from Sourcery Institute for their work and help with
-OpenCoarrays. Michael Hirsch helped setting up the continuous integration
-for neural-fortran. I am also thankful to Michael Nielsen for his tutorial on
-neural networks and deep learning, which significantly informed the
-implementation of neural-fortran.
+I am grateful to Arjen Markus who reviewed and helped improve this article.
+I an also thankful to the Sourcery Institute team for their work on OpenCoarrays. 
+Michael Hirsch helped setting up the continuous integration for neural-fortran. 
+Michael Nielsen's tutorial on neural networks and deep learning
+significantly informed the implementation of neural-fortran.
 Neural-fortran repository is available at
 \url{https://github.com/modern-fortran/neural-fortran}.
 The complete source code for this manuscript is available at
