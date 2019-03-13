@@ -115,7 +115,7 @@ with a predefined set of instructions to produce the output data, machine
 learning aims to infer the instructions from sets of input and output data.
 There are several widely used and battle-tested machine learning frameworks
 available such as Tensorflow \citep{abadi16}, Keras \citep{chollet15},
-PyTorch \citep{paszke17}, Scikit-learn \citep{pendregosa11}, and many others.
+PyTorch \citep{paszke17}, Scikit-learn \citep{pendregosa11}.
 Most high-level frameworks tend to be written in Python, with computational
 kernels written in C++. With Fortran being a high-performance, compiled, and
 natively parallel programming language, it is worth exploring whether Fortran
@@ -132,7 +132,7 @@ memory alike. The most recent iteration of the Fortran standard is Fortran 2018
 \citep{reid18}, which brought improvements to interoperability with C,
 advanced parallel programming features such as teams and events, and
 miscellaneous additions to the language and the standard library.
-The above-mentioned features, as well as its continued development by
+These features, as well as the continued development by
 the Fortran Standards committee, provide a solid foundation for a
 Fortran framework for neural networks and deep learning.
 
@@ -145,7 +145,7 @@ language and a new concept.
 Second, it allows existing machine learning practitioners who are not
 familiar with modern Fortran to learn more about the language and its unique
 capabilities, such as whole-array arithmetic and native distributed parallelism.
-Finally, this framework could be used by scientists and engineers
+Finally, this framework can be used by scientists and engineers
 to integrate machine learning flows into existing Fortran software, such as
 those for civil engineering \citep{fischer08},
 computational chemistry \citep{valiev10},
@@ -153,8 +153,7 @@ and numerical weather \citep{powers17}, ocean \citep{chassignet06},
 wave \citep{donelan12}, and climate \citep{hurell13} prediction.
 This paper thus serves as a gentle introduction to each of these audiences.
 
-This paper describes the implementation of neural-fortran, a parallel
-framework for neural networks and deep learning. While still only a
+This paper describes the implementation of neural-fortran. While still only a
 proof of concept, I demonstrate that its ease of use, serial performance, and
 parallel scalability make it a viable candidate for use in production on its
 own, or in integration with existing Fortran software. For brevity, I will not
@@ -179,7 +178,7 @@ Neural-fortran provides out-of-the-box support for:
   \item Optimization using stochastic gradient descent (SGD) \citep{rumelhart86}
   and a quadratic cost function;
   \item Data-based parallelism using collective sum and broadcast operations;
-  \item Single (\lstinline{real32}), double (\lstinline{real64}), or quad
+  \item Single (\lstinline{real32}), double (\lstinline{real64}), or quadruple
   (\lstinline{real128}) precision floats, selected at compile time;
   \item Saving and loading networks to and from file.
 \end{itemize}
@@ -188,9 +187,16 @@ Feed-forward neural networks are the simplest possible flavor of all neural
 networks, and form a basis for other network flavors such as convolutional
 \citep{krizhevsky12} and recurrent \citep{hochreiter97} neural networks.
 Optimization algorithm and the choice of cost function allow a network
-to learn from the data. Finally, parallelism allows training or evaluating the
-network using many processors at once. I describe the implementation of these
-features in the next section.
+to learn from the data. Parallelism allows training or evaluating the
+network using many processors at once.
+Finally, the choice of single, double, or quadruple floating-point
+precision is made available via type kind constants from the 
+standard \lstinline{iso_fortran_env} module, and selected at 
+compile-time using a preprocessor macro. 
+While quadruple floating-point precision is likely an overkill
+for most machine learning applications, it's trivially made 
+available by most recent Fortran compilers, and may prove to 
+be useful if an application that requires it comes about.
 
 \section{Implementation} \label{section_implementation}
 
@@ -314,7 +320,7 @@ each neuron in this layer, and the other for all the neurons in the next layer.
 The kind constant \lstinline{rk} refers to the real kind, and can be selected
 by the user at compile time as either \lstinline{real32} (single precision,
 default), \lstinline{real64} (double precision), and \lstinline{real128}
-(quad precision, if available).
+(quadruple precision, if available).
 
 Before we begin any training, it is important to initialize the network with
 quasi-random weights and biases to make it as little biased as possible.
@@ -666,9 +672,11 @@ is available in the \lstinline{mod_io} module.
 \end{figure}
 
 The MNIST dataset consists of 70000 images of handwritten digits, and the
-same number of labels denoting the value in each image. Each image is a
-28 by 28 pixel greyscale scan of a numerical digit in the range [0-9].
-Figure \ref{fig_mnist_example_digit} offers a close-up view of one such image.
+same number of labels denoting the value in each image. In this paper,
+50000 images will be used for training, and 10000 for validation.
+Each image is a 28 by 28 pixel greyscale scan of a 
+numerical digit in the range [0-9]. Figure \ref{fig_mnist_example_digit} 
+offers a close-up view of one such image.
 
 \begin{figure}[H]
   \centering
@@ -755,6 +763,12 @@ returns input and output data arrays that are in the appropriate shape for
 working with neural-fortran. While not obvious from the listing, the training
 dataset consists of 50000 images, and the testing dataset consists of 10000
 images. The distinction between the two is built into the data loader.
+The remaining 10000 images (\lstinline{va_images}, \lstinline{va_labels}) 
+are left unused in this example. The important bit is for the validation
+dataset to be completely distinct from the training dataset, to assure 
+that the model can generalize as it learns. In this specific case,
+either the testing or the validation dataset can be used to evaluate
+the model accuracy.
 
 Second, we create our network instance, in this case a network with one input
 layer with 784 neurons, one hidden layer with 30 neurons, and one output layer
@@ -946,8 +960,8 @@ is shown using the dashed line.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\columnwidth]{../figures/nf-parallel-efficiency.png}
-  \caption{Parallel efficiency as function of number of cores in the MNIST training example.
-	   Zero speed-up relative to the serial mode ($PE = 1/n$) is indicated with the dashed line.}
+	\caption{Parallel efficiency as function of number of cores in the MNIST training example (solid line),
+	   and zero speed-up relative to the serial mode, $PE = 1/n$ (dashed line).}
   \label{fig_mnist_efficiency}
 \end{figure}
 
@@ -1027,7 +1041,7 @@ focus.
 
 \begin{acks}
 I am grateful to Arjen Markus who reviewed and helped improve this article.
-I an also thankful to the Sourcery Institute team for their work on OpenCoarrays. 
+I am also thankful to the Sourcery Institute team for their work on OpenCoarrays. 
 Michael Hirsch helped setting up the continuous integration for neural-fortran. 
 Michael Nielsen's tutorial on neural networks and deep learning
 significantly informed the implementation of neural-fortran.
