@@ -764,9 +764,9 @@ working with neural-fortran. While not obvious from the listing, the training
 dataset consists of 50000 images, and the testing dataset consists of 10000
 images. The distinction between the two is built into the data loader.
 The remaining 10000 images (\lstinline{va_images}, \lstinline{va_labels}) 
-are left unused in this example. The important bit is for the validation
-dataset to be completely distinct from the training dataset, to assure 
-that the model can generalize as it learns. In this specific case,
+are left unused in this example. It is important for the validation
+dataset to be completely distinct from the training dataset to assure 
+that the model can learn in a general way. In this specific case,
 either the testing or the validation dataset can be used to evaluate
 the model accuracy.
 
@@ -777,6 +777,16 @@ arbitrary. The input layer size must match the size of the input data sample.
 In case of MNIST, each image is 28 by 28 pixels, a total of 784 pixels.
 Similarly, the size of the output layer must match the size of the output
 data sample, an array of 10 elements, one for each digit.
+The rationale for transforming the value of the image label into an array
+of 10 binary values is empirical. 
+As the weights and biases of the network are adjusted in the training 
+process, the network assigns higher probability to one or more digits.
+The output of the network is thus the probability that the input image represents
+each of the 10 digits. For a well trained network and a clean input image, 
+the network should output one value that is approximately 1, and nine others
+that are approximately 0. This binary label representation thus allows for 
+probabilistic output of the network. While other output layer configurations 
+are possible, they don't tend to yield as good results.
 
 In the third step, we begin the training loop, which is performed for a set
 number of epochs. An epoch refers to one round of cycling through the whole
@@ -784,7 +794,10 @@ training dataset, in our case, 50000 images. Within each epoch, however,
 we iterate over a number of so-called mini-batches, which are the subsets of
 the whole dataset. The number of mini-batches is controlled by the batch size,
 in our case 1000, meaning that a total of 50 training iterations will be done
-in each epoch.
+in each epoch. The random choice of the starting index of the mini-batch is 
+what makes this gradient descent approach a stochastic one. Note that in 
+this simplistic implementation using the \lstinline{random_number} subroutine, 
+not all data samples will be used even for a large number of epochs.
 
 As we saw in Section \ref{backprop}, the learning rate \lstinline{eta} is the
 multiplier to weight and bias tendencies at the time of the network update.
