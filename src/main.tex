@@ -86,7 +86,7 @@ This paper describes neural-fortran, a parallel Fortran framework for neural
 networks and deep learning. It features a simple interface to construct
 feed-forward neural networks of arbitrary structure and size, several activation
 functions, and stochastic gradient descent as the default optimization algorithm.
-Neural-fortran also leverages the Fortran 2018 standard collective subroutines
+neural-fortran also leverages the Fortran 2018 standard collective subroutines
 to achieve data-based parallelism on shared- or distributed-memory machines.
 First, I describe the implementation of neural networks with Fortran derived
 types, whole-array arithmetic, and collective sum and broadcast operations
@@ -168,7 +168,7 @@ Then, I discuss the computational performance of the framework in Section
 
 \section{Features} \label{section_features}
 
-Neural-fortran provides out-of-the-box support for:
+neural-fortran provides out-of-the-box support for:
 
 \begin{itemize}
   \item Feed-forward neural networks with arbitrary number of hidden layers with
@@ -273,7 +273,8 @@ the network, and how many neurons should each layer have. \lstinline{size(dims)}
 is the total number of layers, including input and output layers. The second
 argument is optional, and it is a character string that contains the name of the
 activation function to use in the network. If not present, we default to a
-sigmoid function, a commonly used function for neural network applications.
+sigmoid function, $\sigma(x) = 1 / \left( 1 + e^{-x} \right)$,
+a commonly used function for neural network applications.
 The first step that we take in the constructor is to call the \lstinline{init()} method,
 which goes on to allocate the layers and their components in memory, and to
 initialize their values. Second, we set the procedure pointers for the activation
@@ -305,17 +306,17 @@ and sufficient (Listing \ref{layer_listing}).
 \begin{minipage}{\linewidth}
 \begin{lstlisting}[caption={Definition of the layer class.}, captionpos=b, label={layer_listing}]
 type :: layer_type
-  real(rk), allocatable :: a(:)
-  real(rk), allocatable :: b(:)
-  real(rk), allocatable :: w(:,:)
-  real(rk), allocatable :: z(:)
+  real(rk), allocatable :: a(:) ! activations
+  real(rk), allocatable :: b(:) ! biases
+  real(rk), allocatable :: w(:,:) ! weights
+  real(rk), allocatable :: z(:) ! temp. array
 end type layer_type
 \end{lstlisting}
 \end{minipage}
 
 The layer is thus simply made of contiguous allocatable arrays for activations,
 biases, weights, and a temporary array to be used in the backpropagation step.
-Note that unlike the activations and biases, the weights are of rank 2: one for
+Note that unlike the activations and biases, the weights are of rank 2, one for
 each neuron in this layer, and the other for all the neurons in the next layer.
 The kind constant \lstinline{rk} refers to the real kind, and can be selected
 by the user at compile time as either \lstinline{real32} (single precision,
@@ -343,7 +344,7 @@ end function constructor
 \end{lstlisting}
 \end{minipage}
 
-All weights are initialized as radnom numbers with a normal distribution
+All weights are initialized as random numbers with a normal distribution
 centered on zero, and normalized by the number of neurons in the layer. The
 goal of normalization is to prevent the saturation of the network output
 for large networks.
@@ -447,8 +448,8 @@ but the essence of the method can be described in three steps:
 \end{enumerate}
 
 Thus the name gradient descent. The second step is the core of the method.
-The "stochastic" part comes in later, in the way how the data is shuffled
-during the training.
+The "stochastic" part comes about in the way that the input data is 
+shuffled during the training.
 
 Back to our code. Assuming we have done a forward propagation step and updated
 the activations in all layers, a backward propagation step will compute
@@ -497,7 +498,7 @@ is omitted in this paper for brevity.
 
 Now that we have the essential building blocks of a neural network's training
 loop (forward propagation, backward propagation, and update), we can put them
-together in a sequence to make a conveniece high-level training procedure.
+together in a sequence to make a convenience high-level training procedure.
 
 The subroutine \lstinline{train_single} takes a single set of input data x and y,
 and the learning rate \lstinline{eta}, and updates its weights and biases
@@ -617,7 +618,7 @@ following steps:
 
   Once the collective sum operation is complete, each process updates their
   own copy of the network. \lstinline{dw_co_sum} and \lstinline{db_co_sum} are
-  simple wrappers around \lstinline{co_sum} for arrays of derived types that
+  thin wrappers around \lstinline{co_sum} for arrays of derived types that
   hold the weight and bias tendencies, respectively.
 
 \end{enumerate}
@@ -671,12 +672,14 @@ is available in the \lstinline{mod_io} module.
   \label{fig_mnist_examples}
 \end{figure}
 
-The MNIST dataset consists of 70000 images of handwritten digits, and the
-same number of labels denoting the value in each image. In this paper,
-50000 images will be used for training, and 10000 for validation.
-Each image is a 28 by 28 pixel greyscale scan of a 
-numerical digit in the range [0-9]. Figure \ref{fig_mnist_example_digit} 
-offers a close-up view of one such image.
+The MNIST dataset consists of 70000 images of handwritten digits, 
+and the same number of labels denoting the value in each image. 
+A label is a qualitative value that classifies the input image.
+In this paper, 50000 images will be used for training, and 10000 for validation.
+Each image is a 28 by 28 pixel greyscale scan of a numerical digit in the range [0-9]. 
+The labels for this dataset are thus numerical values in the same range. 
+Figure \ref{fig_mnist_example_digit} offers a close-up view of one such image,
+labeled as number 2.
 
 \begin{figure}[H]
   \centering
@@ -687,7 +690,7 @@ offers a close-up view of one such image.
   \label{fig_mnist_example_digit}
 \end{figure}
 
-In this example, we will load the MNIST dataset into the memory, the data from
+In this example, we will load the MNIST dataset into memory, the data from
 each image being represented as a rank-1 real array of 784 elements, with
 magnitude in the range [0-1]. The pixel values from each image will serve as the
 input data $x$ to our network. The labels will serve as the output data $y$.
@@ -708,7 +711,6 @@ program example_mnist
 
   real(rk), allocatable :: tr_images(:,:), tr_labels(:)
   real(rk), allocatable :: te_images(:,:), te_labels(:)
-  real(rk), allocatable :: va_images(:,:), va_labels(:)
   real(rk), allocatable :: input(:,:), output(:,:)
 
   type(network_type) :: net
@@ -717,8 +719,7 @@ program example_mnist
   integer(ik) :: batch_size, batch_start, batch_end
   real(rk) :: pos
 
-  call load_mnist(tr_images, tr_labels, te_images,&
-                  te_labels, va_images, va_labels)
+  call load_mnist(tr_images, tr_labels, te_images, te_labels)
 
   net = network_type([784, 30, 10])
 
@@ -763,12 +764,8 @@ returns input and output data arrays that are in the appropriate shape for
 working with neural-fortran. While not obvious from the listing, the training
 dataset consists of 50000 images, and the testing dataset consists of 10000
 images. The distinction between the two is built into the data loader.
-The remaining 10000 images (\lstinline{va_images}, \lstinline{va_labels}) 
-are left unused in this example. It is important for the validation
-dataset to be completely distinct from the training dataset to assure 
-that the model can learn in a general way. In this specific case,
-either the testing or the validation dataset can be used to evaluate
-the model accuracy.
+It is important for the validation dataset to be completely distinct 
+from the training dataset to ensure that the model can learn in a general way. 
 
 Second, we create our network instance, in this case a network with one input
 layer with 784 neurons, one hidden layer with 30 neurons, and one output layer
@@ -794,10 +791,15 @@ training dataset, in our case, 50000 images. Within each epoch, however,
 we iterate over a number of so-called mini-batches, which are the subsets of
 the whole dataset. The number of mini-batches is controlled by the batch size,
 in our case 1000, meaning that a total of 50 training iterations will be done
-in each epoch. The random choice of the starting index of the mini-batch is 
-what makes this gradient descent approach a stochastic one. Note that in 
-this simplistic implementation using the \lstinline{random_number} subroutine, 
-not all data samples will be used even for a large number of epochs.
+in each epoch. The random choice of the starting index of the mini-batch
+makes this gradient descent approach a stochastic one. 
+Randomly sampling the training data in each batch prevents the network
+from converging toward a state that is specific to the ordering of the data.
+Note that in this simplistic implementation using the \lstinline{random_number} subroutine, 
+not all data samples will be used even for a large number of epochs,
+and there will be some overlap within each epoch. 
+While this works well enough for this example, 
+more sophisticated shuffling should be used in production.
 
 As we saw in Section \ref{backprop}, the learning rate \lstinline{eta} is the
 multiplier to weight and bias tendencies at the time of the network update.
@@ -930,10 +932,10 @@ widely in production and at scale, this suggests that neural-fortran has
 potential to be computationally competitive in production, especially if
 optimizations are made to the linear algebra operations.
 
-Finally, it is worth mentioning the ease of use of neural-fortran in comparison
-to Keras. The most straightforward metric is the number of lines of code needed to
+Finally, it is worth comparing the ease of use of neural-fortran to that of Keras. 
+The most straightforward metric is the number of lines of code needed to
 construct, train, and evaluate the network. The neural-fortran program used
-in this benchmark consists of 37 lines of code, excluding comments,
+in this benchmark consists of 35 lines of code excluding comments,
 whereas the Keras script consists of 41 lines of code. Five of these lines
 were needed to constrain the Keras network to use a single thread.
 The amount of code needed for this example is thus almost equivalent
@@ -952,7 +954,7 @@ distributed evenly between the parallel processes.
 Unlike in the serial benchmarks, here we time only the traning portion
 of the code and exclude the loading of the dataset. Elapsed times on up to
 12 parallel images on a shared-memory system are shown in Figure
-\ref{fig_mnist_elapsed}. The elapsed time decreses monotonically from over
+\ref{fig_mnist_elapsed}. The elapsed time decreases monotonically from over
 12 s in serial mode to under 2 s on 12 parallel cores.
 
 \begin{figure}[H]
@@ -1053,12 +1055,12 @@ further development of neural-fortran will maintain ease of use as its primary
 focus.
 
 \begin{acks}
-I am grateful to Arjen Markus who reviewed and helped improve this article.
+I am grateful to Arjen Markus and Izaak Beekman who reviewed and helped improve this article.
 I am also thankful to the Sourcery Institute team for their work on OpenCoarrays. 
 Michael Hirsch helped setting up the continuous integration for neural-fortran. 
 Michael Nielsen's tutorial on neural networks and deep learning
 significantly informed the implementation of neural-fortran.
-Neural-fortran repository is available at
+neural-fortran repository is available at
 \url{https://github.com/modern-fortran/neural-fortran}.
 The complete source code for this manuscript is available at
 \url{https://github.com/milancurcic/neural-fortran-paper}.
